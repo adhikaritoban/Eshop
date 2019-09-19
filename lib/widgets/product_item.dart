@@ -31,9 +31,19 @@ class ProductItem extends StatelessWidget {
               arguments: product.id,
             );
           },
-          child: Image.network(
-            product.imageUrl,
-            fit: BoxFit.cover,
+
+          //take pic from one page to another
+          child: Hero(
+            //tag indication of unique
+            tag: product.id,
+            //fade in image if it is available
+            child: FadeInImage(
+              placeholder: AssetImage('assets/images/product-placeholder.png'),
+              image: NetworkImage(
+                product.imageUrl,
+              ),
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         footer: GridTileBar(
@@ -68,9 +78,11 @@ class ProductItem extends StatelessWidget {
                     'Added item to card',
                   ),
                   duration: Duration(seconds: 2),
-                  action: SnackBarAction(label: 'UNDO', onPressed: () {
-                    cart.removeSingleItem(product.id);
-                  }),
+                  action: SnackBarAction(
+                      label: 'UNDO',
+                      onPressed: () {
+                        cart.removeSingleItem(product.id);
+                      }),
                 ),
               );
             },
