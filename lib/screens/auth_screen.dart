@@ -13,7 +13,6 @@ class AuthScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final deviceSize = MediaQuery.of(context).size;
     //.. cascade operator, operation down
     /* final transformConfig = Matrix4.rotationZ(-8 * pi/180);
@@ -47,7 +46,7 @@ class AuthScreen extends StatelessWidget {
                     child: Container(
                       margin: EdgeInsets.only(bottom: 20.0),
                       padding:
-                      EdgeInsets.symmetric(vertical: 8.0, horizontal: 94.0),
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 94.0),
                       transform: Matrix4.rotationZ(-8 * pi / 180)
                         ..translate(-10.0),
                       //how to present this container, .. means (-8 * pi/180).translet(), .. will not return but the previous method will return
@@ -96,19 +95,35 @@ class AuthCard extends StatefulWidget {
   _AuthCardState createState() => _AuthCardState();
 }
 
-class _AuthCardState extends State<AuthCard> {
+//SingleTickerProviderStateMixin lets our widget know when a frame update is due animations and need that information to play smoothly
+class _AuthCardState extends State<AuthCard>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<FormState> _formKey = GlobalKey();
+
   //inital is login
   AuthMode _authMode = AuthMode.Login;
+
   /*for storing email and password map*/
   Map<String, String> _authData = {
     'email': '',
     'password': '',
   };
+
   //for loading progress
   var _isLoading = false;
+
   //for storing password
   final _passwordController = TextEditingController();
+
+  //for animation on this card base height of whole widget
+  var containerHeight = 260;
+
+  //for start, revert the animation
+  AnimationController _animationController;
+
+  //animation object is generic type and can tell what you want to animate in this case height
+  // do heavy lifting of changing the value of height over time, every pixel is within 60 milliseconds
+  Animation<Size> _heightAnimation;
 
   //for showing error message to user
   void _showErrorDialog(String message) {
@@ -185,16 +200,59 @@ class _AuthCardState extends State<AuthCard> {
   }
 
   //change login
+  //add animation here
   void _switchAuthMode() {
     if (_authMode == AuthMode.Login) {
       setState(() {
         _authMode = AuthMode.Signup;
       });
+      //and allow use to view animation
+      //forward means start animation
+      _animationController.forward();
     } else {
       setState(() {
         _authMode = AuthMode.Login;
       });
+      //reverse the animation and shrink the height
+      _animationController.reverse();
     }
+  }
+
+  @override
+  void initState() {
+    // animation controller and animatio should be instanciate while building this widget/class
+    //vsync is argument where we give this controller a pointer at the widget and if widget is visible on screen the animation should play
+    //duration for forward and backward
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(
+        milliseconds: 300,
+      ),
+    );
+
+    //tween class gives object which then knows how to animate between 2 values,but does not give animation itself tween=>between
+    //now animate take animation object which will wrap itself around tween and find what to animate and
+    //the animate object tell how to animate
+    _heightAnimation = Tween<Size>(
+      begin: Size(double.infinity, 260),
+      end: Size(double.infinity, 320),
+    ).animate(
+      //infrom what its parent is _animationController and curve defines how duration time is basically split
+      CurvedAnimation(
+          parent: _animationController, curve: Curves.fastOutSlowIn),
+    );
+
+    //added listener to call set state whenever the _heightAnimation updates
+    //re run the build method to see animation on the screen
+    _heightAnimation.addListener(() => setState(() {}));
+
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -206,9 +264,10 @@ class _AuthCardState extends State<AuthCard> {
       ),
       elevation: 8.0,
       child: Container(
-        height: _authMode == AuthMode.Signup ? 320 : 260,
-        constraints:
-        BoxConstraints(minHeight: _authMode == AuthMode.Signup ? 320 : 260),
+        //height: _authMode == AuthMode.Signup ? 320 : 260,
+        //for animation
+        height: _heightAnimation.value.height,
+        constraints: BoxConstraints(minHeight: _heightAnimation.value.height),
         width: deviceSize.width * 0.75,
         padding: EdgeInsets.all(16.0),
         child: Form(
@@ -248,10 +307,10 @@ class _AuthCardState extends State<AuthCard> {
                     obscureText: true,
                     validator: _authMode == AuthMode.Signup
                         ? (value) {
-                      if (value != _passwordController.text) {
-                        return 'Passwords do not match!';
-                      }
-                    }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match!';
+                            }
+                          }
                         : null,
                   ),
                 SizedBox(
@@ -262,13 +321,13 @@ class _AuthCardState extends State<AuthCard> {
                 else
                   RaisedButton(
                     child:
-                    Text(_authMode == AuthMode.Login ? 'LOGIN' : 'SIGN UP'),
+                        Text(_authMode == AuthMode.Login ? 'LOGIN' : 'SIGN UP'),
                     onPressed: _submit,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                     padding:
-                    EdgeInsets.symmetric(horizontal: 30.0, vertical: 8.0),
+                        EdgeInsets.symmetric(horizontal: 30.0, vertical: 8.0),
                     color: Theme.of(context).primaryColor,
                     textColor: Theme.of(context).primaryTextTheme.button.color,
                   ),
